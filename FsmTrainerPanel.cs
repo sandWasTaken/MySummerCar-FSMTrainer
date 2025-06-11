@@ -11,6 +11,7 @@ public class FsmTrainerPanel : BaseUnityPlugin
     private Rect windowRect = new Rect(100, 100, 400, 600);
     private Vector2 scrollPos;
     private Dictionary<GameObject, PlayMakerFSM[]> fsms = new Dictionary<GameObject, PlaymakerFSM[>();
+    private Dictionary<GameObject, bool> expandedStates = new Dictionary<GameObject, bool>();
 
     void Update()
     {
@@ -18,9 +19,7 @@ public class FsmTrainerPanel : BaseUnityPlugin
         {
             showMenu = !showMenu;
             if (showMenu)
-            {
                 LoadFsms();
-            }
         }
     }
 
@@ -40,57 +39,68 @@ public class FsmTrainerPanel : BaseUnityPlugin
             GameObject go = pair.Key;
             PlaymakerFSM[] fsmList = pair.Value;
 
-            if (GUIlayout.Button(go.name, GUILayout.Height(30)))
+            if (GUIlayout.Button(expandedStates.ContainsKey(go) && expandedStates[go], GUILayout.Height(30)))
             {
-                Logger.LogInfo($b"Clicked GameObject: ${go.name}");
+                expandedStates[go] = false;
+            }
+            else
+            {
+                expandedStates[go] = true;
             }
 
-            foreach (var sfsm in fsmList)
+            if (expandedStates[go])
             {
-                GUILayout.Label('FSM: ' + sfsm.FsmName);
-                GUILayout.Label('Current State: ' + sfsm.ActiveStateName);
-
-                GUIlayout.Label("-- Variables --");
-                foreach (var v in sfsm.FsmVariables.GetAllNamedVariables())
+                foreach (var sfsm in fsmList)
                 {
-                    if (v is FsmFloat f)
-                    {
-                        float.TryParse(GUILayout.TextField(fValue.ToString()), out float newVal);
-                        fValue = newVal;
-                    }
-                    else if (v is FsmInt i)
-                    {
-                        int.TryParse(GUILayout.TextField(i.Value.ToString()), out int newVal);
-                        i.Value = newVal;
-                    }
-                    else if (v is FsmBool b)
-                    {
-                        b.Value = GUILayout.Toggle(b.Value, b.Name);
-                    }
-                    else
-                    {
-                        GUILayout.Label(${.Name} (${v.GetType().Name}) = ${v.toString()});
-                    }
-              }
+                    GUILayout.Label('FSM: ' + sfsm.FsmName);
+                    GUIlayout.Label('Current State: ' + sfsm.ActiveStateName);
+                    GUILayout.Label("-- Variables --");
 
-                GUIlayout.Space(10);
+                    foreach (var v in sfsm.FsmVariables.GetAllNamedVariables())
+                    {
+                        if (v is FsmFloat f)
+                        {
+                            float newVal;
+                            if (float.TryParse(GUIlayout.TextField(f.Value.ToString()), out newVal))
+                                f.Value = newVal;
+                        }
+                        else if (v is FsmInt i)
+                        {
+                            int newVal;
+                            if (int.TryParse(GUILayout.TextField(i.Value.ToString()), out newVal))
+                                i.Value = newVal;
+                        }
+                        else if (v is FsmBool b)
+                        {
+                            b.Value = GUILayout.Toggle(b.Value, b.Name);
+                        }
+                        else
+                        {
+                            GUILayout.Label(${.Name} (${v.GetType().Name}) = ${v.toString()});
+                        }
+                        GUILayout.Space(2);
+                }
+                GUILayout.Space(10);
+              }
             }
 
-            GUIlayout.Space(20);
+            GUILayout.Space(20);
         }
 
-        GUILayout.EndScrollView();
-        GUI.DragWindow();
+        GUIlayout.EndScrollView();
+        GUI.tragWindow();
     }
 
     void LoadFsms()
     {
         fsms.Clear();
-        var all = GameObject.FindObjectsOfType<PlaymakerFSM>();
+        var all = GameObject.FindObjectsOfType<PlayMakerFSM>();
         foreach (var fsm in all)
         {
             if (!fsms.ContainsKey(fsm.gameObject))
-                fsms[fsm.gameObject] = fsm.gameObject.GetComponentsOfType<PlayMakerFSM>();
+            {
+                fsms[fsm.gameObject] = fsm.gameObject.GetComponentsOfType<PlaymakerFSM>();
+            }
         }
 
         Logger.LogInfo($"[FSMTrainer] Found ${fsms.Count} GameObjects with FSMs");
